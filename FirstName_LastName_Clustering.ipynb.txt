@@ -1,0 +1,42 @@
+# Import necessary libraries
+import pandas as pd
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import davies_bouldin_score
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Load datasets
+customers = pd.read_csv("Customers.csv")
+transactions = pd.read_csv("Transactions.csv")
+
+# Merge datasets
+merged_data = transactions.merge(customers, on="CustomerID", how="left")
+
+# Feature extraction: Aggregate data for clustering
+cluster_data = merged_data.groupby("CustomerID").agg({
+    "TotalValue": "sum",
+    "Quantity": "sum"
+}).reset_index()
+
+# Standardize the data
+scaler = StandardScaler()
+scaled_data = scaler.fit_transform(cluster_data[["TotalValue", "Quantity"]])
+
+# Apply KMeans clustering
+kmeans = KMeans(n_clusters=4, random_state=42)  # You can change n_clusters between 2 and 10
+cluster_data['Cluster'] = kmeans.fit_predict(scaled_data)
+
+# Calculate the DB Index
+db_index = davies_bouldin_score(scaled_data, cluster_data['Cluster'])
+print(f"DB Index: {db_index}")
+
+# Visualize the clusters
+plt.figure(figsize=(8, 5))
+sns.scatterplot(x=cluster_data["TotalValue"], y=cluster_data["Quantity"], hue=cluster_data["Cluster"], palette="viridis")
+plt.title("Customer Segmentation (Clusters)")
+plt.xlabel("Total Value")
+plt.ylabel("Quantity")
+plt.legend(title="Cluster")
+plt.tight_layout()
+plt.show()

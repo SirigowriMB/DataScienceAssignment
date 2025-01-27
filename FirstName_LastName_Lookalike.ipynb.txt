@@ -1,0 +1,36 @@
+# Import necessary libraries
+import pandas as pd
+from sklearn.metrics.pairwise import cosine_similarity
+
+# Load the datasets
+customers = pd.read_csv("Customers.csv")
+products = pd.read_csv("Products.csv")
+transactions = pd.read_csv("Transactions.csv")
+
+# Merge the datasets
+merged_data = transactions.merge(customers, on="CustomerID", how="left")
+merged_data = merged_data.merge(products, on="ProductID", how="left")
+
+# Feature extraction: Create a customer-product matrix
+customer_product_matrix = merged_data.pivot_table(index="CustomerID", columns="ProductID", values="Quantity", aggfunc="sum", fill_value=0)
+
+# Calculate cosine similarity between customers
+cosine_sim = cosine_similarity(customer_product_matrix)
+
+# Create a function to recommend similar customers
+def recommend_customers(customer_id, cosine_sim=cosine_sim):
+    idx = customer_product_matrix.index.get_loc(customer_id)
+    sim_scores = list(enumerate(cosine_sim[idx]))
+    sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
+    sim_scores = sim_scores[1:4]  # Get top 3 similar customers
+    similar_customers = [(customer_product_matrix.index[i], score) for i, score in sim_scores]
+    return similar_customers
+
+# Get recommendations for the first 20 customers
+lookalike_recommendations = {}
+for customer_id in customer_product_matrix.index[:20]:
+    lookalike_recommendations[customer_id] = recommend_customers(customer_id)
+
+# Save the lookalike recommendations to a CSV file
+lookalike_df = pd.DataFrame.from_dict(lookalike_recommendations, orient='index', columns=["CustomerID", "Similarity_Score"])
+lookalike_df.to_csv("FirstName_LastName_Lookalike.csv", index_label="CustomerID")

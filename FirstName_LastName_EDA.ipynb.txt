@@ -1,0 +1,76 @@
+# Import necessary libraries
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Load the datasets
+try:
+    customers = pd.read_csv("Customers.csv")
+    products = pd.read_csv("Products.csv")
+    transactions = pd.read_csv("Transactions.csv")
+except FileNotFoundError as e:
+    print(f"Error: {e}")
+    exit()
+
+# Display the first few rows of each dataset
+print("Customers Dataset:")
+print(customers.head(), "\n")
+print("Products Dataset:")
+print(products.head(), "\n")
+print("Transactions Dataset:")
+print(transactions.head(), "\n")
+
+# Check for missing values in each dataset
+print("Missing Values Summary:")
+print("Customers:")
+print(customers.isnull().sum())
+print("\nProducts:")
+print(products.isnull().sum())
+print("\nTransactions:")
+print(transactions.isnull().sum(), "\n")
+
+# Merge datasets for a comprehensive analysis
+merged_data = transactions.merge(customers, on="CustomerID", how="left")
+merged_data = merged_data.merge(products, on="ProductID", how="left")
+
+# Display the first few rows of the merged dataset
+print("Merged Dataset:")
+print(merged_data.head(), "\n")
+
+# Descriptive statistics
+print("Descriptive Statistics:")
+print(merged_data.describe(include='all'), "\n")
+
+# Visualizing customer distribution by region
+plt.figure(figsize=(8, 5))
+sns.countplot(data=customers, x="Region", order=customers["Region"].value_counts().index, palette="viridis")
+plt.title("Customer Distribution by Region", fontsize=14)
+plt.xlabel("Region", fontsize=12)
+plt.ylabel("Number of Customers", fontsize=12)
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
+
+# Visualizing revenue by product category
+plt.figure(figsize=(8, 5))
+sns.barplot(data=merged_data, x="Category", y="TotalValue", estimator=sum, ci=None, palette="coolwarm",
+            order=merged_data.groupby("Category")["TotalValue"].sum().sort_values(ascending=False).index)
+plt.title("Revenue by Product Category", fontsize=14)
+plt.xlabel("Product Category", fontsize=12)
+plt.ylabel("Total Revenue", fontsize=12)
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
+
+# Visualizing revenue trend over time
+merged_data["TransactionDate"] = pd.to_datetime(merged_data["TransactionDate"])
+revenue_trend = merged_data.groupby("TransactionDate")["TotalValue"].sum().reset_index()
+
+plt.figure(figsize=(10, 5))
+plt.plot(revenue_trend["TransactionDate"], revenue_trend["TotalValue"], marker="o", color="b")
+plt.title("Revenue Over Time", fontsize=14)
+plt.xlabel("Transaction Date", fontsize=12)
+plt.ylabel("Total Revenue", fontsize=12)
+plt.grid(alpha=0.3)
+plt.tight_layout()
+plt.show()
